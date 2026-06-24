@@ -9,7 +9,7 @@ update_resend.py
 resend_data.json
 zuru-dashboard/
 zuru-dashboard-online/
-index.html
+/index.html
 *.py
 *.pyc
 __pycache__/
