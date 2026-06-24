@@ -1,0 +1,15 @@
+.workbuddy/
+build_hub.py
+dashboard.html
+dashboard-hub.html
+dashboard_data.json
+hod_location_mapping.json
+update_hod.py
+update_resend.py
+resend_data.json
+zuru-dashboard/
+zuru-dashboard-online/
+index.html
+*.py
+*.pyc
+__pycache__/
