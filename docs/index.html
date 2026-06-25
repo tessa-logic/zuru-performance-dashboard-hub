@@ -235,7 +235,7 @@ tbody tr:last-child td { border-bottom:none; }
   <h1 id="headerTitle">ZURU 绩效看板集</h1>
   <div class="header-right">
     <div class="snapshot-panel" id="snapshotPanel">
-      <button class="snap-btn" onclick="event.stopPropagation();toggleSnapshotPanel()" id="snapToggleBtn">📅 2026-06-17</button>
+      <button class="snap-btn" onclick="event.stopPropagation();toggleSnapshotPanel()" id="snapToggleBtn">📅 2026-06-25</button>
       <div class="snapshot-selector" id="snapshotSelector" style="display:none"></div>
     </div>
     <span id="snapshotDate" style="font-size:13px;opacity:0.9">数据日期：2026-06-25</span>
@@ -283,7 +283,7 @@ tbody tr:last-child td { border-bottom:none; }
       <div class="table-header">
         <h3 id="deptTableTitle">部门进度明细</h3>
       </div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:scroll">
         <table><thead id="deptThead"></thead><tbody id="deptTbody"></tbody></table>
       </div>
     </div>
@@ -325,7 +325,7 @@ tbody tr:last-child td { border-bottom:none; }
           <button class="btn-export" onclick="exportCSV()" id="btnExport">导出CSV</button>
         </div>
       </div>
-      <div style="overflow-x:auto;position:relative">
+      <div style="overflow-x:scroll;position:relative">
         <table id="detailTable"><thead id="detailThead"></thead><tbody id="detailTbody"></tbody></table>
       </div>
       <div class="pagination" id="pagination"></div>
@@ -362,7 +362,7 @@ tbody tr:last-child td { border-bottom:none; }
             </select>
           </div>
         </div>
-        <div style="overflow-x:auto;position:relative">
+        <div style="overflow-x:scroll;position:relative">
           <table id="resendDeptTable">
             <thead id="resendDeptThead"></thead>
             <tbody id="resendDeptTbody"></tbody>
@@ -382,7 +382,7 @@ tbody tr:last-child td { border-bottom:none; }
             <button class="btn-export" id="resendBtnExport" onclick="exportResendCSV()">导出CSV</button>
           </div>
         </div>
-        <div style="overflow-x:auto;position:relative">
+        <div style="overflow-x:scroll;position:relative">
           <table id="resendDetailTable">
             <thead id="resendDetailThead"></thead>
             <tbody id="resendDetailTbody"></tbody>
@@ -424,7 +424,7 @@ tbody tr:last-child td { border-bottom:none; }
               <button class="btn-export" id="objBtnExport" onclick="alert(LANG==='zh'?'数据待补充':'Data pending')">导出CSV</button>
             </div>
           </div>
-          <div style="overflow-x:auto;position:relative">
+          <div style="overflow-x:scroll;position:relative">
             <table id="objDetailTable">
               <thead id="objDetailThead"><tr>
                 <th id="objCol1">工号</th><th id="objCol2">姓名</th><th id="objCol3">英文名</th>
@@ -466,7 +466,7 @@ tbody tr:last-child td { border-bottom:none; }
       <!-- User List Table -->
       <div class="admin-section">
         <h3 id="adminListTitle">用户列表</h3>
-        <div style="overflow-x:auto">
+        <div style="overflow-x:scroll">
           <table id="userTable" style="width:100%;border-collapse:collapse;font-size:14px">
             <thead>
               <tr>
@@ -1185,7 +1185,8 @@ let CURRENT_SNAPSHOT = '';
 
 async function loadSnapshotsList() {
   try {
-    const res = await fetch('snapshots/snapshots_list.json');
+    const cacheBust = '?v=' + Date.now();
+    const res = await fetch('snapshots/snapshots_list.json' + cacheBust);
     SNAPSHOTS_LIST = await res.json();
     renderSnapshotSelector();
     if (SNAPSHOTS_LIST.length > 0) {
@@ -1200,13 +1201,19 @@ async function loadSnapshotsList() {
       currentDeptProbation = DEPT_PROBATION;
       updateLabels();
       renderCurrentView();
+      // Update date display in fallback mode
+      const dateDisp = document.getElementById('snapshotDate');
+      if (dateDisp) dateDisp.textContent = (LANG === 'zh' ? '数据日期：' : 'Data Date: ') + CURRENT_SNAPSHOT;
+      const snapBtn = document.getElementById('snapToggleBtn');
+      if (snapBtn) snapBtn.textContent = '📅 ' + CURRENT_SNAPSHOT;
     }
   }
 }
 
 async function loadSnapshot(dateStr) {
   try {
-    const res = await fetch('snapshots/' + dateStr + '.json');
+    const cacheBust = '?v=' + Date.now();
+    const res = await fetch('snapshots/' + dateStr + '.json' + cacheBust);
     const snap = await res.json();
     DATA = snap.data;
     CURRENT_SNAPSHOT = dateStr;
@@ -1352,6 +1359,16 @@ function renderDeptView() {
   window._deptRows = rows;
 
   const expandLevel = maxLevel;
+
+  // Compute totals for summary row
+  const totalAll = DATA.length;
+  const totalStepCounts = {};
+  steps.forEach(s => totalStepCounts[s] = 0);
+  DATA.forEach(p => { if (totalStepCounts[p.currentStep] !== undefined) totalStepCounts[p.currentStep]++; });
+  const totalCompleted = totalStepCounts['Completed'];
+  const totalRate = totalAll ? totalCompleted / totalAll : 0;
+  const summaryLabel = LANG === 'zh' ? '合计' : 'Total';
+
   document.getElementById('deptTbody').innerHTML = rows.map((r, idx) => {
     const indent = r.depth * 24;
     const visible = r.depth < expandLevel;
@@ -1369,7 +1386,17 @@ function renderDeptView() {
         </div>
       </td>
     </tr>`;
-  }).join('');
+  }).join('') + `<tr class="dept-summary-row" style="background:var(--accent);color:#fff;font-weight:700;border-top:2px solid var(--primary);">
+      <td style="padding:10px 12px">${summaryLabel}</td>
+      <td class="clickable-num" style="padding:10px 12px;color:#fff">${totalAll}</td>
+      ${steps.map(s => `<td class="clickable-num" style="padding:10px 12px;color:#fff">${totalStepCounts[s]}</td>`).join('')}
+      <td style="padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-bar" style="width:80px;background:rgba(255,255,255,0.2)"><div class="progress-fill" style="width:${(totalRate*100).toFixed(0)}%;background:#fff"></div></div>
+          <span style="font-weight:700;color:#fff">${(totalRate*100).toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`;
 }
 
 function toggleDeptRow(idx) {
@@ -2074,7 +2101,7 @@ checkAuth();
       <h3 id="modalTitle">人员明细</h3>
       <button class="modal-close" onclick="closePeopleModal()">✕</button>
     </div>
-    <div id="modalBody" style="overflow-x:auto;max-height:60vh"></div>
+    <div id="modalBody" style="overflow-x:scroll;max-height:60vh"></div>
   </div>
 </div>
 </body>
