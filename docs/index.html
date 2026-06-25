@@ -1028,8 +1028,10 @@ const RESEND_COLS = [
   {key:'contractType',field:'contractType',labelZh:'合同类型',labelEn:'Contract Type',w:110,filterable:true}
 ];
 
-const NAMELIST_STATS = {totalActive:2812, totalProbation:316};
+const NAMELIST_STATS = {totalActive:2812, totalProbation:251};
+const DEPT_PROBATION = {"1":{"Wider Administration":40,"Wider Factory":27,"Wider NPD":51,"Wider Supply Chain":48,"Wider Creative & Design":25,"Wider Housing":26,"Wider Sales & Marketing":33,"Wider Mowbray Operations":1},"2":{"Finance":20,"HZ Zland":5,"NPD":43,"ZS Zhuyan":7,"Supply Chain & Operations":47,"Design":4,"Housing India":8,"Housing Engineering CN":10,"Admin":4,"Human Resource":8,"Sample Room - Packaging":5,"Housing Structural Design - NZ":3,"Gumi Land":5,"IT":6,"Legal":1,"Graphic Design":10,"Line Optimization & Automation Development":2,"Sales":8,"Marketing":23,"Housing Factory":5,"Thailand Factory":2,"Creative":11,"R&D":2,"DG Koyo":3,"Property":1,"Logistics":1,"Licensing":1,"Transportation":1,"DG Borray":3,"Quality":1,"Commercial":1},"3":{"Shared":127,"Edge":47,"Toys":47,"Housing":26,"Electronics":4},"4":{"Factory Costing & Accounting":5,"Factory":20,"NPD Engineering":35,"Shipping":7,"Merchandising & Operations":25,"Baby Vertical":5,"Online Service":4,"Mechanical Design":6,"Admin Operation":3,"HR Global":7,"Finance":14,"Purchasing":1,"QA":3,"Demand & Supply Planning":15,"Product Design":3,"Candy Factory":5,"Global Infrastructure":4,"Transactional":1,"Management Accounting & Reporting":1,"Team 3":3,"Gumi Land":2,"Asia Pacific, Middle East & Africa":3,"Global Marketing":9,"Brand Engagement":5,"Team 1":1,"Structural Engineering":1,"Manufacturing":1,"Housing":5,"China":11,"Cosmetics Regulation":2,"Europe":1,"Sourcing & Procurment":4,"Software Design":2,"Development Management":1,"Operations":1,"International Sales":2,"R&D":3,"Business System":2,"Beauty Vertical":6,"North America Sales":2,"Project Management":1,"Team 5":1,"Lab":1,"People and Culture":1,"Printing engineering":1,"Verticals":1,"Team 2":1,"Sourcing":1,"Motion Team":1},"5":{"DG Koyo":1,"PMC":13,"Project Management":14,"Gumi Land":3,"MTO":5,"MTS":1,"Local Operations":6,"Baby Design Team":1,"Merchandising":19,"Production Engineering":4,"Team Data":3,"Team 1":3,"Structural Engineering":4,"Free Form":6,"Culture":1,"Financial Accounting":10,"Purchasing Team":1,"DSP Edge":8,"Compliance QA":1,"Production":4,"Odoo":2,"Development Engineering":1,"Treasury & AP":4,"DSP Toys":7,"Team 5":3,"Maintain":2,"Onsite HR":3,"Costing Engineering":2,"China":2,"Backend":1,"Prototype Room":1,"Creative Services":6,"Customer Service":2,"Sample Room - Sewing":2,"Recruitment":2,"GZ Yuhe":1,"Machine Learning":1,"Team 3":2,"Manufacturing Team":1,"Infrastructure":1,"Assembly-2":2,"Logistics":1,"R&D":2,"Packaging Design":4,"Packaging Structure Engineering":1,"Australia&Asia":1,"Deskside":1,"Eletrical":2,"CSR":1,"FMCG RM":1,"Structural Research-India":2,"Marketing":8,"Equipment":1,"Australia&New Zealand":2,"Business Intelligence":1,"Construction/Software":1,"Product Design":5,"Illustration":2,"FMCG Engineering":1,"3D Model":4,"Warehouse":1,"Walmart & Sams":1,"Brand Innovation":1,"Edge":1,"Influencer Seeding":1,"SAP":1,"Brand & Activation":2,"Beauty Vertical":1,"Local Marketing":1,"Miscellaneous":1,"Training":1,"Welding":1,"Latam":1},"6":{"Smashers":2,"MTO Team 1":2,"International":14,"MTO Team 2":3,"Project Engineering":1,"PC Vertical":2,"Account Receivable":5,"SP Edge":6,"Toys Production":2,"Cooperate Support":2,"DP Edge":2,"North America":5,"Account Payable":4,"DSP Toys Team 4":1,"FMCG Customization":2,"HZ Lijia":1,"Distribution":2,"Team Netra":1,"Walmart":1,"Graphic Design":6,"Toys":1,"Campus Recruitment":1,"Gumi Yum":2,"Construction & Confectionery":1,"General Ledger":5,"Machining":2,"DSP Toys Team 3":1,"Fugglers":1,"Support":1,"ZS Zhuyan":1,"Lijia":2,"Team 2":2,"Gumi Land":1,"EU":2,"Baby":2,"Toys Customization":1,"Chemical RM":1,"Pets":1,"Team 1":1,"Snackles":1,"BT Zhuyu":1,"Millie Moon":1,"DAISE":1,"Candy Production":1,"MONDAY":1,"Social Recruitment":1,"Being":2,"Consultant":1,"DSP Toys Team 2":2,"Girls Brand":2,"Commercial":1,"IE":1,"FMCG Flexio PKG":1,"DSP Toys Team 1":1,"Edge":1,"Osana/Chalon":1},"7":{"International Team 1":7,"Daise":1,"Other International":2,"Wellness & Pet Vertical":2,"International Team 2":7,"S+":1,"North America+CN":2,"E-Commerce Distribution":1,"Beauty Vertical":3,"Bad Teddy":1,"Admin":2,"Baby & Cleaning Vertical":2,"Content":1,"USA":1,"Team 1":1,"BT Zhuyu":1}};
 let RESEND_DATA_ARR = [];
+let currentDeptProbation = null;
 let resendCurrentTab = 'resendDept';
 let resendPage = 1;
 const resendPageSize = 30;
@@ -1194,6 +1196,8 @@ async function loadSnapshotsList() {
     if (typeof RAW_DATA !== 'undefined' && RAW_DATA.length > 0) {
       DATA = RAW_DATA;
       CURRENT_SNAPSHOT = '2026-06-17';
+      currentNamelistStats = NAMELIST_STATS;
+      currentDeptProbation = DEPT_PROBATION;
       updateLabels();
       renderCurrentView();
     }
@@ -1212,6 +1216,9 @@ async function loadSnapshot(dateStr) {
     }
     if (snap.namelistStats) {
       currentNamelistStats = snap.namelistStats;
+    }
+    if (snap.deptProbation) {
+      currentDeptProbation = snap.deptProbation;
     }
     updateLabels();
     renderCurrentView();
@@ -1904,31 +1911,30 @@ function renderResendStats() {
 function renderResendDeptView() {
   const level = parseInt(document.getElementById('resendDeptLevelSelect').value);
   const deptField = 'dept' + level;
+  const probMap = (currentDeptProbation || DEPT_PROBATION)[String(level)] || {};
   const groups = {};
   RESEND_DATA_ARR.forEach(d => {
     const key = d[deptField] || '(Unknown)';
-    if (!groups[key]) groups[key] = {total: 0, probation: 0, resent: 0, pending: 0};
+    if (!groups[key]) groups[key] = {total: 0, probDept: 0};
     groups[key].total++;
-    if (d.probStatus === 'Still in probation') groups[key].probation++;
-    groups[key].pending++;
+  });
+  // Add probation counts from Namelist data
+  Object.keys(groups).forEach(dept => {
+    groups[dept].probDept = probMap[dept] || 0;
   });
   const colDefs = [
     {zh:'部门',en:'Department'},
-    {zh:'待补发人数',en:'Pending Count'},
     {zh:'试用期人数',en:'Probation Count'},
-    {zh:'已补发',en:'Resent'},
-    {zh:'待补发',en:'Pending'},
-    {zh:'完成率',en:'Completion Rate'}
+    {zh:'待补发人数',en:'Pending Count'}
   ];
   let thead = '<tr>' + colDefs.map(c => '<th>' + (LANG==='zh'?c.zh:c.en) + '</th>').join('') + '</tr>';
   document.getElementById('resendDeptThead').innerHTML = thead;
   let rows = Object.entries(groups).sort((a,b) => b[1].total - a[1].total).map(([dept, g]) => {
-    const rate = g.total > 0 ? ((g.resent / g.total) * 100).toFixed(1) + '%' : '0%';
-    return '<tr><td>' + dept + '</td><td>' + g.total + '</td><td>' + g.probation + '</td><td>' + g.resent + '</td><td>' + g.pending + '</td><td>' + rate + '</td></tr>';
+    return '<tr><td>' + dept + '</td><td>' + g.probDept + '</td><td>' + g.total + '</td></tr>';
   });
   const totalAll = RESEND_DATA_ARR.length;
-  const totalProb = RESEND_DATA_ARR.filter(d => d.probStatus === 'Still in probation').length;
-  rows.push('<tr style="font-weight:600;background:#f5f5f5"><td>' + (LANG==='zh'?'合计':'Total') + '</td><td>' + totalAll + '</td><td>' + totalProb + '</td><td>0</td><td>' + totalAll + '</td><td>0%</td></tr>');
+  const totalProbDept = Object.values(groups).reduce((s,g) => s + g.probDept, 0);
+  rows.push('<tr style="font-weight:600;background:#f5f5f5"><td>' + (LANG==='zh'?'合计':'Total') + '</td><td>' + totalProbDept + '</td><td>' + totalAll + '</td></tr>');
   document.getElementById('resendDeptTbody').innerHTML = rows.join('');
 }
 
