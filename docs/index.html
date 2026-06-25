@@ -1918,9 +1918,15 @@ function renderResendDeptView() {
     if (!groups[key]) groups[key] = {total: 0, probDept: 0};
     groups[key].total++;
   });
-  // Add probation counts from Namelist data
+  // Add probation counts from Namelist data for departments in resend data
   Object.keys(groups).forEach(dept => {
     groups[dept].probDept = probMap[dept] || 0;
+  });
+  // Also include departments that have probation employees but no resend entries
+  Object.keys(probMap).forEach(dept => {
+    if (!groups[dept] && probMap[dept] > 0) {
+      groups[dept] = {total: 0, probDept: probMap[dept]};
+    }
   });
   const colDefs = [
     {zh:'部门',en:'Department'},
