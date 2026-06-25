@@ -251,8 +251,8 @@ tbody tr:last-child td { border-bottom:none; }
   <!-- Main Dashboard Tabs -->
   <div class="main-tabs" id="mainTabs">
     <button class="main-tab active" onclick="switchDash('objSetting')" id="dashObjSetting">目标设定进度</button>
-    <button class="main-tab" onclick="switchDash('objective')" id="dashObjective">目标看板</button>
     <button class="main-tab" onclick="switchDash('resend')" id="dashResend">补发表单</button>
+    <button class="main-tab" onclick="switchDash('objective')" id="dashObjective">目标看板</button>
     <button class="main-tab" onclick="switchDash('admin')" id="dashAdmin" style="display:none">用户管理</button>
   </div>
 
@@ -333,42 +333,6 @@ tbody tr:last-child td { border-bottom:none; }
   </div>
   </div><!-- end secObjSetting -->
 
-  <!-- ===== Dashboard 2: 目标看板 ===== -->
-  <div class="dash-section" id="secObjective">
-    <div class="placeholder-wrap">
-      <div class="ph-icon">🎯</div>
-      <div class="ph-title" id="phObjTitle">目标看板</div>
-      <div class="ph-desc" id="phObjDesc">数据待补充，请上传目标数据后更新此看板</div>
-      <div style="margin-top:32px;">
-        <div class="stats-row" id="objStatsRow">
-          <div class="stat-card"><div class="label" id="objStat1Label">目标总数</div><div class="value">-</div></div>
-          <div class="stat-card completed"><div class="label" id="objStat2Label">已达成</div><div class="value">-</div></div>
-          <div class="stat-card in-progress"><div class="label" id="objStat3Label">进行中</div><div class="value">-</div></div>
-          <div class="stat-card not-started"><div class="label" id="objStat4Label">未开始</div><div class="value">-</div></div>
-        </div>
-        <div class="table-wrap" style="margin-top:24px;">
-          <div class="table-header">
-            <h3 id="objTableTitle">目标明细</h3>
-            <div class="table-controls">
-              <button class="btn-export" id="objBtnExport" onclick="alert(LANG==='zh'?'数据待补充':'Data pending')">导出CSV</button>
-            </div>
-          </div>
-          <div style="overflow-x:auto;position:relative">
-            <table id="objDetailTable">
-              <thead id="objDetailThead"><tr>
-                <th id="objCol1">工号</th><th id="objCol2">姓名</th><th id="objCol3">英文名</th>
-                <th id="objCol4">一级部门</th><th id="objCol5">二级部门</th>
-                <th id="objCol6">目标类别</th><th id="objCol7">目标内容</th>
-                <th id="objCol8">目标状态</th>
-              </tr></thead>
-              <tbody id="objDetailTbody"><tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-light)">数据待补充</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div><!-- end secObjective -->
-
   <!-- ===== Dashboard 2: 补发目标表单 ===== -->
   <div class="dash-section" id="secResend">
     <!-- Stats -->
@@ -439,6 +403,42 @@ tbody tr:last-child td { border-bottom:none; }
       </div>
     </div>
   </div><!-- end secResend -->
+
+  <!-- ===== Dashboard 3: 目标看板 ===== -->
+  <div class="dash-section" id="secObjective">
+    <div class="placeholder-wrap">
+      <div class="ph-icon">🎯</div>
+      <div class="ph-title" id="phObjTitle">目标看板</div>
+      <div class="ph-desc" id="phObjDesc">数据待补充，请上传目标数据后更新此看板</div>
+      <div style="margin-top:32px;">
+        <div class="stats-row" id="objStatsRow">
+          <div class="stat-card"><div class="label" id="objStat1Label">目标总数</div><div class="value">-</div></div>
+          <div class="stat-card completed"><div class="label" id="objStat2Label">已达成</div><div class="value">-</div></div>
+          <div class="stat-card in-progress"><div class="label" id="objStat3Label">进行中</div><div class="value">-</div></div>
+          <div class="stat-card not-started"><div class="label" id="objStat4Label">未开始</div><div class="value">-</div></div>
+        </div>
+        <div class="table-wrap" style="margin-top:24px;">
+          <div class="table-header">
+            <h3 id="objTableTitle">目标明细</h3>
+            <div class="table-controls">
+              <button class="btn-export" id="objBtnExport" onclick="alert(LANG==='zh'?'数据待补充':'Data pending')">导出CSV</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;position:relative">
+            <table id="objDetailTable">
+              <thead id="objDetailThead"><tr>
+                <th id="objCol1">工号</th><th id="objCol2">姓名</th><th id="objCol3">英文名</th>
+                <th id="objCol4">一级部门</th><th id="objCol5">二级部门</th>
+                <th id="objCol6">目标类别</th><th id="objCol7">目标内容</th>
+                <th id="objCol8">目标状态</th>
+              </tr></thead>
+              <tbody id="objDetailTbody"><tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-light)">数据待补充</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- end secObjective -->
   <!-- ===== Dashboard 4: Admin Panel ===== -->
   <div class="dash-section" id="secAdmin">
     <div class="placeholder-wrap" style="text-align:left;padding:20px">
@@ -1787,7 +1787,7 @@ function resetAllFilters() {
 function renderResendStats() {
   const hc = (currentNamelistStats && currentNamelistStats.totalActive) || NAMELIST_STATS.totalActive;
   const prob = (currentNamelistStats && currentNamelistStats.totalProbation) || NAMELIST_STATS.totalProbation;
-  const sent = DATA.filter(d => d.userStatus === 'Active User').length;
+  const sent = (typeof DATA !== 'undefined' && Array.isArray(DATA)) ? DATA.filter(d => d.userStatus === 'Active User').length : '-';
   const pending = RESEND_DATA_ARR.length;
   document.getElementById('resendStat1Val').textContent = hc;
   document.getElementById('resendStat2Val').textContent = prob;
