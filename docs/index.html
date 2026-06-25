@@ -350,7 +350,7 @@ tbody tr:last-child td { border-bottom:none; }
     </div>
 
     <!-- Resend Dept Panel -->
-    <div class="panel" id="resendDeptPanel">
+    <div class="panel active" id="resendDeptPanel">
       <div class="table-wrap">
         <div class="table-header">
           <h3 id="resendDeptTableTitle">部门补发进度明细</h3>
@@ -1053,8 +1053,8 @@ function switchResendTab(tab) {
   document.querySelectorAll('#resendTabs .sub-tab').forEach(t => t.classList.remove('active'));
   if (tab === 'resendDept') document.getElementById('resendTabDept').classList.add('active');
   else document.getElementById('resendTabDetail').classList.add('active');
-  document.getElementById('resendDeptPanel').style.display = tab === 'resendDept' ? '' : 'none';
-  document.getElementById('resendDetailPanel').style.display = tab === 'resendDetail' ? '' : 'none';
+  document.getElementById('resendDeptPanel').style.display = tab === 'resendDept' ? 'block' : 'none';
+  document.getElementById('resendDetailPanel').style.display = tab === 'resendDetail' ? 'block' : 'none';
 }
 
 function closeResendModal() {
