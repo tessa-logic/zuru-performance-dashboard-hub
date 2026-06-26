@@ -1196,7 +1196,7 @@ async function loadSnapshotsList() {
   } catch(e) {
     console.warn('No snapshot API available, using embedded data');
     if (typeof RAW_DATA !== 'undefined' && RAW_DATA.length > 0) {
-      DATA = RAW_DATA;
+      DATA = RAW_DATA.filter(d => d.userStatus === 'Active User');
       CURRENT_SNAPSHOT = '2026-06-26';
       currentNamelistStats = NAMELIST_STATS;
       currentDeptProbation = DEPT_PROBATION;
@@ -1216,7 +1216,7 @@ async function loadSnapshot(dateStr) {
     const cacheBust = '?v=' + Date.now();
     const res = await fetch('snapshots/' + dateStr + '.json' + cacheBust);
     const snap = await res.json();
-    DATA = snap.data;
+    DATA = snap.data.filter(d => d.userStatus === 'Active User');
     CURRENT_SNAPSHOT = dateStr;
     // Load resend data from snapshot
     if (snap.resendData) {
@@ -1927,7 +1927,7 @@ function resetAllFilters() {
 function renderResendStats() {
   const hc = (currentNamelistStats && currentNamelistStats.totalActive) || NAMELIST_STATS.totalActive;
   const prob = (currentNamelistStats && currentNamelistStats.totalProbation) || NAMELIST_STATS.totalProbation;
-  const sent = (typeof DATA !== 'undefined' && Array.isArray(DATA)) ? DATA.filter(d => d.userStatus === 'Active User').length : '-';
+  const sent = (typeof DATA !== 'undefined' && Array.isArray(DATA)) ? DATA.length : '-';
   const pending = RESEND_DATA_ARR.length;
   document.getElementById('resendStat1Val').textContent = hc;
   document.getElementById('resendStat2Val').textContent = prob;
