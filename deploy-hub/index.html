@@ -1286,8 +1286,8 @@ function initApp() {
 function renderStats() {
   const total = DATA.length;
   const completed = DATA.filter(d => d.currentStep === 'Completed').length;
-  const inProgress = DATA.filter(d => d.currentStep !== 'Completed' && d.currentStep !== 'Annual Objective Setting').length;
-  const notStarted = DATA.filter(d => d.currentStep === 'Annual Objective Setting').length;
+  const inProgress = DATA.filter(d => d.currentStep !== 'Completed' && d.currentStep !== 'Annual Objective Setting' && d.currentStep !== 'Leader Upload').length;
+  const notStarted = DATA.filter(d => d.currentStep === 'Annual Objective Setting' || d.currentStep === 'Leader Upload').length;
   const rate = total ? ((completed / total) * 100).toFixed(1) : 0;
 
   document.getElementById('statsRow').innerHTML = `
