@@ -324,10 +324,6 @@ tbody tr:last-child td { border-bottom:none; }
         <h3 id="detailTableTitle">人员明细</h3>
         <div class="table-controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <input type="text" id="detailSearch" oninput="detailPage=1;renderDetailView()" placeholder="搜索工号/姓名/英文名..." style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;outline:none;width:200px;">
-          <div style="position:relative;display:inline-block;">
-            <button class="ms-filter-btn" id="msBtn_location" onclick="event.stopPropagation();toggleMsDd('location')">工作地点</button>
-            <div class="ms-filter-dd" id="msDd_location" style="display:none;position:absolute;top:100%;left:0;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:8px 0;min-width:200px;max-height:320px;overflow-y:auto;"></div>
-          </div>
           <button class="btn-reset" onclick="resetAllFilters()" id="btnReset">重置</button>
           <button class="btn-export" onclick="exportCSV()" id="btnExport">导出CSV</button>
         </div>
@@ -905,16 +901,6 @@ function updateLabels() {
   document.getElementById('btnReset').textContent = LANG === 'zh' ? '重置' : 'Reset';
   const searchEl = document.getElementById('detailSearch');
   if (searchEl) searchEl.placeholder = LANG === 'zh' ? '搜索工号/姓名/英文名...' : 'Search SF ID/Name/EN...';
-  // Update extra filter button labels
-  EXTRA_FILTERS.forEach(f => updateMsBtnLabel(f.key));
-  // Rebuild extra filter dropdowns to update search placeholders
-  EXTRA_FILTERS.forEach(f => {
-    const dd = document.getElementById('msDd_' + f.key);
-    if (dd) {
-      const searchInput = dd.querySelector('input[type="text"]');
-      if (searchInput) searchInput.placeholder = LANG === 'zh' ? '搜索...' : 'Search...';
-    }
-  });
   document.getElementById('logoutBtn').textContent = t('logout');
   document.getElementById('loginTitle').textContent = t('loginTitle');
   document.getElementById('loginDesc').textContent = t('loginDesc');
@@ -1616,18 +1602,14 @@ const DETAIL_COLS = [
   { key: 'step',     labelZh: '当前步骤',  labelEn: 'Current Step',  field: 'currentStep',           filterable: true, isStep: true },
 ];
 
-// Separate multi-select dropdown filters (not in table columns)
-const EXTRA_FILTERS = [];
 let detailFilterState = {}; // { colKey: Set([...]) }
 let detailColFilterOpen = null;
 let detailColFilterInited = false;
 let extraFilterState = {}; // { colKey: Set }
 let extraFilterInited = false;
-let msDdOpen = null; // which multi-select dropdown is open
 
 function initColFilterState() {
   DETAIL_COLS.forEach(c => { if (c.filterable) detailFilterState[c.key] = new Set(); });
-  EXTRA_FILTERS.forEach(f => { extraFilterState[f.key] = new Set(); });
 }
 
 function getColFilterValues(col) {
@@ -1761,11 +1743,6 @@ function getDetailFiltered() {
     const s = detailFilterState[c.key];
     if (s && s.size > 0) filtered = filtered.filter(d => s.has(d[c.field]));
   });
-  // Extra filters (location)
-  EXTRA_FILTERS.forEach(f => {
-    const s = extraFilterState[f.key];
-    if (s && s.size > 0) filtered = filtered.filter(d => s.has(d[f.field]));
-  });
   filtered.sort((a, b) => (STEP_ORDER[a.currentStep] || 99) - (STEP_ORDER[b.currentStep] || 99));
   return filtered;
 }
@@ -1774,7 +1751,6 @@ function renderDetailView() {
   if (!detailColFilterInited) { initColFilterState(); detailColFilterInited = true; }
   closeColFilter();
   // Ensure extra filter dropdowns are built
-  EXTRA_FILTERS.forEach(f => buildExtraFilterDd(f.key));
 
   const filtered = getDetailFiltered();
 
@@ -1834,114 +1810,12 @@ document.addEventListener('click', (e) => {
 });
 
 // ===== EXTRA MULTI-SELECT DROPDOWNS =====
-function buildExtraFilterDd(key) {
-  const f = EXTRA_FILTERS.find(x => x.key === key);
-  if (!f) return;
-  const dd = document.getElementById('msDd_' + key);
-  if (dd.querySelector('.ms-opt')) return; // already built
-  dd.innerHTML = '';
-  const values = [...new Set(DATA.map(d => d[f.field]).filter(Boolean))].sort();
-  const selected = extraFilterState[key] || new Set();
 
-  // Search box
-  const searchBox = document.createElement('input');
-  searchBox.type = 'text';
-  searchBox.placeholder = LANG === 'zh' ? '搜索...' : 'Search...';
-  searchBox.style.cssText = 'width:calc(100% - 16px);margin:4px 8px 6px;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;';
-  dd.appendChild(searchBox);
 
-  // Select all / Clear
-  const actionRow = document.createElement('div');
-  actionRow.style.cssText = 'display:flex;justify-content:space-between;padding:2px 12px 6px;font-size:11px;border-bottom:1px solid var(--border);margin-bottom:4px;';
-  const selAll = document.createElement('a');
-  selAll.href = 'javascript:void(0)';
-  selAll.textContent = LANG === 'zh' ? '全选' : 'Select All';
-  selAll.style.cssText = 'color:var(--primary);cursor:pointer;';
-  selAll.onclick = () => {
-    values.forEach(v => selected.add(v));
-    dd.querySelectorAll('.ms-opt input').forEach(cb => { cb.checked = true; });
-    updateMsBtnLabel(key);
-    renderDetailView();
-  };
-  const clearAll = document.createElement('a');
-  clearAll.href = 'javascript:void(0)';
-  clearAll.textContent = LANG === 'zh' ? '清空' : 'Clear';
-  clearAll.style.cssText = 'color:var(--text-light);cursor:pointer;';
-  clearAll.onclick = () => {
-    selected.clear();
-    dd.querySelectorAll('.ms-opt input').forEach(cb => { cb.checked = false; });
-    updateMsBtnLabel(key);
-    renderDetailView();
-  };
-  actionRow.appendChild(selAll);
-  actionRow.appendChild(clearAll);
-  dd.appendChild(actionRow);
-
-  // Options
-  values.forEach(v => {
-    const label = document.createElement('label');
-    label.className = 'ms-opt';
-    label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 12px;cursor:pointer;font-size:13px;white-space:nowrap;';
-    label.onmouseover = () => label.style.background = 'var(--bg)';
-    label.onmouseout = () => label.style.background = '';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = v;
-    cb.checked = selected.has(v);
-    cb.onchange = () => {
-      if (cb.checked) selected.add(v); else selected.delete(v);
-      updateMsBtnLabel(key);
-      renderDetailView();
-    };
-    const span = document.createElement('span');
-    span.textContent = v;
-    label.appendChild(cb);
-    label.appendChild(span);
-    dd.appendChild(label);
-  });
-
-  searchBox.oninput = () => {
-    const q = searchBox.value.toLowerCase();
-    dd.querySelectorAll('.ms-opt').forEach(el => {
-      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
-    });
-  };
-
-  // Stop click propagation
-  dd.onclick = (e) => e.stopPropagation();
-}
-
-function toggleMsDd(key) {
-  if (msDdOpen && msDdOpen !== key) {
-    document.getElementById('msDd_' + msDdOpen).style.display = 'none';
-  }
-  const dd = document.getElementById('msDd_' + key);
-  buildExtraFilterDd(key);
-  const isOpen = dd.style.display !== 'none';
-  dd.style.display = isOpen ? 'none' : 'block';
-  msDdOpen = isOpen ? null : key;
-}
-
-function updateMsBtnLabel(key) {
-  const f = EXTRA_FILTERS.find(x => x.key === key);
-  const btn = document.getElementById('msBtn_' + key);
-  if (!f || !btn) return;
-  const count = extraFilterState[key] ? extraFilterState[key].size : 0;
-  const base = LANG === 'zh' ? f.labelZh : f.labelEn;
-  btn.textContent = count > 0 ? `${base} (${count})` : base;
-  btn.classList.toggle('active', count > 0);
-}
 
 function resetAllFilters() {
   // Reset column filters
   DETAIL_COLS.forEach(c => { if (c.filterable && detailFilterState[c.key]) detailFilterState[c.key].clear(); });
-  // Reset extra filters
-  EXTRA_FILTERS.forEach(f => {
-    if (extraFilterState[f.key]) extraFilterState[f.key].clear();
-    updateMsBtnLabel(f.key);
-    const dd = document.getElementById('msDd_' + f.key);
-    if (dd) dd.querySelectorAll('.ms-opt input').forEach(cb => { cb.checked = false; });
-  });
   // Reset search
   const searchEl = document.getElementById('detailSearch');
   if (searchEl) searchEl.value = '';
