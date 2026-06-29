@@ -1612,18 +1612,16 @@ const DETAIL_COLS = [
   { key: 'hod',      labelZh: 'HOD',       labelEn: 'HOD',           field: 'hod',                   filterable: true },
   { key: 'hrbp',     labelZh: 'HRBP',      labelEn: 'HRBP',          field: 'hrbpLocalName',         filterable: true },
   { key: 'formTpl',  labelZh: '表单模板名称', labelEn: 'Form Template Name', field: 'formTemplateName', filterable: true },
+  { key: 'workLoc',  labelZh: '工作地点', labelEn: 'Work Location', field: 'workLocation', filterable: true },
   { key: 'step',     labelZh: '当前步骤',  labelEn: 'Current Step',  field: 'currentStep',           filterable: true, isStep: true },
 ];
 
 // Separate multi-select dropdown filters (not in table columns)
-const EXTRA_FILTERS = [
-  { key: 'location', labelZh: '工作地点', labelEn: 'Work Location', field: 'workLocation' },
-];
-
+const EXTRA_FILTERS = [];
 let detailFilterState = {}; // { colKey: Set([...]) }
 let detailColFilterOpen = null;
 let detailColFilterInited = false;
-let extraFilterState = {}; // { location: Set }
+let extraFilterState = {}; // { colKey: Set }
 let extraFilterInited = false;
 let msDdOpen = null; // which multi-select dropdown is open
 
@@ -1809,9 +1807,10 @@ function renderDetailView() {
       <td>${d.hod || ''}</td>
       <td>${d[hrbpDisplay] || '-'}</td>
       <td>${d.formTemplateName || ''}</td>
+      <td>${d.workLocation || ''}</td>
       <td><span class="badge ${stepBadgeClass(d.currentStep)}">${stepLabel(d.currentStep)}</span></td>
     </tr>
-  `).join('') : `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-light)">${t('noData')}</td></tr>`;
+  `).join('') : `<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-light)">${t('noData')}</td></tr>`;
 
   // Pagination
   document.getElementById('pagination').innerHTML = `
