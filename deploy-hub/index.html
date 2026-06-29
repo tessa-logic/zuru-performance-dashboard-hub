@@ -545,7 +545,7 @@ const I18N = {
     objTableTitle: '目标明细', objCol1: '工号', objCol2: '姓名', objCol3: '英文名',
     objCol4: '一级部门', objCol5: '二级部门', objCol6: '目标类别', objCol7: '目标内容', objCol8: '目标状态',
     resendStat1Label: 'HC(在职人员数)', resendStat2Label: '试用期人数', resendStat3Label: '已发送表单数', resendStat4Label: '待发送表单数',
-    resendRemark: '指标取数说明：① HC(在职人员数)=Namelist-AllZURU中Employee Status=Active；② 试用期人数=Namelist-AllZURU中Employee Status=Active且Probation Status=Still in probation；③ 已发送表单数=Objective Progress中Active User计数；④ 待发送表单数=Namelist-AllZURU Active员工中排除Wider Mowbray Operations部门、SF ID 21101975、试用期人员、以及已在Objective Progress中作为Active User存在的记录',
+    resendRemark: '指标取数说明：① HC(在职人员数)=Namelist-AllZURU中Employee Status=Active；② 试用期人数=Namelist-AllZURU中Employee Status=Active且Probation Status=Still in probation；③ 已发送表单数=Objective Progress中Active User计数；④ 待发送表单数=Namelist-AllZURU Active员工中排除Wider Mowbray Operations/Wider Management Team部门、SF ID 21101975、试用期人员、以及已在Objective Progress中作为Active User存在的记录',
     resendTabDept: '部门进度', resendTabDetail: '人员明细',
     resendDeptTableTitle: '部门补发进度明细', resendDeptLevelLabel: '展开层级：',
     resendTableTitle: '补发表单人员明细', resendBtnReset: '重置', resendBtnExport: '导出CSV',
@@ -602,7 +602,7 @@ const I18N = {
     objTableTitle: 'Objective Detail', objCol1: 'SF ID', objCol2: 'Name', objCol3: 'English Name',
     objCol4: 'Dept L1', objCol5: 'Dept L2', objCol6: 'Obj Category', objCol7: 'Obj Content', objCol8: 'Obj Status',
     resendStat1Label: 'HC (Active Employees)', resendStat2Label: 'Probation Count', resendStat3Label: 'Forms Sent', resendStat4Label: 'Forms Pending',
-    resendRemark: 'Computation Rules: ① HC=Namelist-AllZURU Employee Status=Active; ② Probation=Namelist-AllZURU Employee Status=Active AND Probation Status=Still in probation; ③ Forms Sent=Objective Progress Active User count; ④ Forms Pending=Namelist-AllZURU Active employees minus Wider Mowbray Operations dept, SF ID 21101975, probation staff, and records already present as Active User in Objective Progress',
+    resendRemark: 'Computation Rules: ① HC=Namelist-AllZURU Employee Status=Active; ② Probation=Namelist-AllZURU Employee Status=Active AND Probation Status=Still in probation; ③ Forms Sent=Objective Progress Active User count; ④ Forms Pending=Namelist-AllZURU Active employees minus Wider Mowbray Operations/Wider Management Team dept, SF ID 21101975, probation staff, and records already present as Active User in Objective Progress',
     resendTabDept: 'Dept Progress', resendTabDetail: 'People Detail',
     resendDeptTableTitle: 'Dept Resend Progress', resendDeptLevelLabel: 'Expand Level:',
     resendTableTitle: 'Resend Form People Detail', resendBtnReset: 'Reset', resendBtnExport: 'Export CSV',
@@ -1156,7 +1156,7 @@ function filterResendData(arr) {
     const supName = (d.supEnName||'') + ' ' + (d.supLocalName||'');
     if (supName.trim() === 'Miller 王大超') return false;
     if (d.sfId === '21101975') return false;
-    if (d.dept1 === 'Wider Mowbray Operations') return false;
+    if (d.dept1 === 'Wider Mowbray Operations' || d.dept1 === 'Wider Management Team') return false;
     if (d.probStatus === 'Still in probation') return false;
     return true;
   });
