@@ -1605,7 +1605,6 @@ const DETAIL_COLS = [
 let detailFilterState = {}; // { colKey: Set([...]) }
 let detailColFilterOpen = null;
 let detailColFilterInited = false;
-let extraFilterInited = false;
 
 function initColFilterState() {
   DETAIL_COLS.forEach(c => { if (c.filterable) detailFilterState[c.key] = new Set(); });
@@ -1802,10 +1801,6 @@ document.addEventListener('click', (e) => {
   closeColFilter();
   closeResendColFilter();
   // Close extra dropdowns if click outside
-  if (msDdOpen && !e.target.closest('.ms-filter-dd') && !e.target.closest('.ms-filter-btn')) {
-    document.getElementById('msDd_' + msDdOpen).style.display = 'none';
-    msDdOpen = null;
-  }
 });
 
 // ===== EXTRA MULTI-SELECT DROPDOWNS =====
