@@ -341,7 +341,7 @@ tbody tr:last-child td { border-bottom:none; }
       <div class="stat-card"><div class="label" id="resendStat1Label">HC(在职人员数)</div><div class="sub" id="resendStat1Sub">Namelist Employee Status=Active</div><div class="value" id="resendStat1Val">-</div></div>
       <div class="stat-card"><div class="label" id="resendStat2Label">试用期人数</div><div class="sub" id="resendStat2Sub">Active + Still in probation</div><div class="value" id="resendStat2Val">-</div></div>
       <div class="stat-card completed"><div class="label" id="resendStat3Label">已发送表单数</div><div class="value" id="resendStat3Val">-</div></div>
-      <div class="stat-card not-started"><div class="label" id="resendStat4Label">待发送表单数</div><div class="value" id="resendStat4Val">-</div></div>
+      <div class="stat-card not-started"><div class="label" id="resendStat4Label">待发送表单数</div><div class="sub" id="resendStat4Sub">Active - Wider Mowbray - 21101975 - Probation - Sent</div><div class="value" id="resendStat4Val">-</div></div>
     </div>
 
     <!-- Resend Tabs -->
@@ -542,7 +542,7 @@ const I18N = {
     objStat1Label: '目标总数', objStat2Label: '已达成', objStat3Label: '进行中', objStat4Label: '未开始',
     objTableTitle: '目标明细', objCol1: '工号', objCol2: '姓名', objCol3: '英文名',
     objCol4: '一级部门', objCol5: '二级部门', objCol6: '目标类别', objCol7: '目标内容', objCol8: '目标状态',
-    resendStat1Label: 'HC(在职人员数)', resendStat1Sub: 'Namelist Employee Status=Active', resendStat2Label: '试用期人数', resendStat2Sub: 'Active + Still in probation', resendStat3Label: '已发送表单数', resendStat4Label: '待发送表单数',
+    resendStat1Label: 'HC(在职人员数)', resendStat1Sub: 'Namelist Employee Status=Active', resendStat2Label: '试用期人数', resendStat2Sub: 'Active + Still in probation', resendStat3Label: '已发送表单数', resendStat4Label: '待发送表单数', resendStat4Sub: '排除: Wider Mowbray/21101975/试用期/已发送',
     resendTabDept: '部门进度', resendTabDetail: '人员明细',
     resendDeptTableTitle: '部门补发进度明细', resendDeptLevelLabel: '展开层级：',
     resendTableTitle: '补发表单人员明细', resendBtnReset: '重置', resendBtnExport: '导出CSV',
@@ -598,7 +598,7 @@ const I18N = {
     objStat1Label: 'Total Objectives', objStat2Label: 'Achieved', objStat3Label: 'In Progress', objStat4Label: 'Not Started',
     objTableTitle: 'Objective Detail', objCol1: 'SF ID', objCol2: 'Name', objCol3: 'English Name',
     objCol4: 'Dept L1', objCol5: 'Dept L2', objCol6: 'Obj Category', objCol7: 'Obj Content', objCol8: 'Obj Status',
-    resendStat1Label: 'HC (Active Employees)', resendStat1Sub: 'Namelist Employee Status=Active', resendStat2Label: 'Probation Count', resendStat2Sub: 'Active + Still in probation', resendStat3Label: 'Forms Sent', resendStat4Label: 'Forms Pending',
+    resendStat1Label: 'HC (Active Employees)', resendStat1Sub: 'Namelist Employee Status=Active', resendStat2Label: 'Probation Count', resendStat2Sub: 'Active + Still in probation', resendStat3Label: 'Forms Sent', resendStat4Label: 'Forms Pending', resendStat4Sub: 'Excl: Wider Mowbray/21101975/Probation/Sent',
     resendTabDept: 'Dept Progress', resendTabDetail: 'People Detail',
     resendDeptTableTitle: 'Dept Resend Progress', resendDeptLevelLabel: 'Expand Level:',
     resendTableTitle: 'Resend Form People Detail', resendBtnReset: 'Reset', resendBtnExport: 'Export CSV',
@@ -963,6 +963,7 @@ function updateLabels() {
   document.getElementById('resendStat2Sub').textContent = t('resendStat2Sub');
   document.getElementById('resendStat3Label').textContent = t('resendStat3Label');
   document.getElementById('resendStat4Label').textContent = t('resendStat4Label');
+  document.getElementById('resendStat4Sub').textContent = t('resendStat4Sub');
   document.getElementById('resendTabDept').textContent = t('resendTabDept');
   document.getElementById('resendTabDetail').textContent = t('resendTabDetail');
   document.getElementById('resendDeptTableTitle').textContent = t('resendDeptTableTitle');
@@ -1153,6 +1154,8 @@ function filterResendData(arr) {
     const supName = (d.supEnName||'') + ' ' + (d.supLocalName||'');
     if (supName.trim() === 'Miller 王大超') return false;
     if (d.sfId === '21101975') return false;
+    if (d.dept1 === 'Wider Mowbray Operations') return false;
+    if (d.probStatus === 'Still in probation') return false;
     return true;
   });
 }
