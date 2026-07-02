@@ -1347,12 +1347,15 @@ function initApp() {
 function renderStats() {
   const total = DATA.length;
   const completed = DATA.filter(d => d.currentStep === 'Completed').length;
-  // In Progress: all active workflow steps (annual + mid-year review)
-  const inProgressSteps = ['Leader Confirms Annual Objectives', 'Team Member Confirms Annual Objectives',
-    'Document Transfer', 'Team Member Self-Assessment', 'Leader Assessment', 'HRBP Calibration'];
-  const inProgress = DATA.filter(d => inProgressSteps.includes(d.currentStep)).length;
-  // Not Started: initial stages before employee enters substantive workflow
-  const notStarted = DATA.filter(d => d.currentStep === 'Annual Objective Setting' || d.currentStep === 'Leader Upload').length;
+  // Not Started = 目标设定中 + 经理上传 + 员工自评 (Rule 2)
+  // Team Member Self-Assessment is an initial stage — employee fills self-review before
+  // the formal review cycle begins, so it counts as "not yet started the formal workflow".
+  const notStarted = DATA.filter(d => d.currentStep === 'Annual Objective Setting'
+    || d.currentStep === 'Leader Upload'
+    || d.currentStep === 'Team Member Self-Assessment').length;
+  // In Progress = 发送表单份数 - 未开始 - 已完成 (computed by subtraction).
+  // This guarantees the three categories always sum to total, regardless of step model changes.
+  const inProgress = total - notStarted - completed;
   const rate = total ? ((completed / total) * 100).toFixed(1) : 0;
 
   document.getElementById('statsRow').innerHTML = `
