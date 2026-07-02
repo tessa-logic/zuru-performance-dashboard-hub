@@ -76,6 +76,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .ms-filter-btn { padding:7px 14px; background:var(--card); border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); transition:all .2s; white-space:nowrap; }
 .ms-filter-btn:hover { border-color:var(--primary); color:var(--primary); }
 .ms-filter-btn.active { border-color:var(--primary); color:var(--primary); background:rgba(214,0,28,0.06); }
+/* Multi-select Form Template dropdown (trigger button + popup) */
+.ms-ft-group { display:flex; flex-direction:column; gap:4px; }
+.ms-ft-group > label { font-size:12px; color:var(--text-light); font-weight:500; }
+.ms-ft-btn { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none; min-width:180px; background:var(--card); cursor:pointer; text-align:left; color:var(--text); display:flex; align-items:center; justify-content:space-between; gap:8px; transition:all .2s; }
+.ms-ft-btn:hover { border-color:var(--primary); }
+.ms-ft-btn.active { border-color:var(--primary); color:var(--primary); background:rgba(214,0,28,0.06); }
+.ms-ft-btn .ms-ft-caret { font-size:10px; opacity:.6; }
+.ms-ft-btn.active .ms-ft-caret { opacity:1; }
+.ms-ft-dd { position:fixed; z-index:99999; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:6px 0; min-width:240px; max-height:340px; display:flex; flex-direction:column; }
+.ms-ft-dd .ms-ft-search { margin:4px 8px 6px; padding:6px 8px; border:1px solid var(--border); border-radius:4px; font-size:12px; outline:none; width:calc(100% - 16px); box-sizing:border-box; }
+.ms-ft-dd .ms-ft-actions { display:flex; justify-content:space-between; padding:2px 12px 6px; font-size:11px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+.ms-ft-dd .ms-ft-actions a { cursor:pointer; }
+.ms-ft-dd .ms-ft-actions .sel-all { color:var(--primary); }
+.ms-ft-dd .ms-ft-actions .clr-all { color:var(--text-light); }
+.ms-ft-dd .ms-ft-opts { overflow-y:auto; max-height:240px; }
+.ms-ft-dd .ms-ft-opt { display:flex; align-items:center; gap:6px; padding:4px 12px; cursor:pointer; font-size:13px; white-space:nowrap; }
+.ms-ft-dd .ms-ft-opt:hover { background:var(--bg); }
 .col-filter-icon { display:inline-block;margin-left:4px;cursor:pointer;font-size:10px;color:var(--text-light);transition:color .2s;user-select:none;}
 .col-filter-icon:hover { color:var(--primary); }
 .col-filter-icon.active { color:var(--primary); }
@@ -282,11 +299,11 @@ tbody tr:last-child td { border-bottom:none; }
           <option value="5">5</option><option value="6">6</option>
         </select>
       </div>
-      <div class="filter-group">
+      <div class="ms-ft-group">
         <label id="lblDeptFormTemplate">表单模板</label>
-        <select id="selDeptFormTemplate" onchange="renderDeptView()">
-          <option value="" id="optAllFormTemplates">全部</option>
-        </select>
+        <button type="button" id="msBtnDeptFormTemplate" class="ms-ft-btn" onclick="event.stopPropagation();toggleMsFtDd('dept')">
+          <span id="msLblDeptFormTemplate">全部</span><span class="ms-ft-caret">&#9662;</span>
+        </button>
       </div>
     </div>
     <div class="table-wrap">
@@ -316,11 +333,11 @@ tbody tr:last-child td { border-bottom:none; }
           <option value="5">5</option><option value="6">6</option>
         </select>
       </div>
-      <div class="filter-group">
+      <div class="ms-ft-group">
         <label id="lblHrbpFormTemplate">表单模板</label>
-        <select id="selHrbpFormTemplate" onchange="renderHrbpView()">
-          <option value="" id="optAllHrbpFormTemplates">全部</option>
-        </select>
+        <button type="button" id="msBtnHrbpFormTemplate" class="ms-ft-btn" onclick="event.stopPropagation();toggleMsFtDd('hrbp')">
+          <span id="msLblHrbpFormTemplate">全部</span><span class="ms-ft-caret">&#9662;</span>
+        </button>
       </div>
     </div>
     <div class="hrbp-grid" id="hrbpGrid"></div>
@@ -527,7 +544,7 @@ const I18N = {
     logout: '退出',
     tabDept: '部门进度', tabHrbp: 'HRBP进度', tabDetail: '人员明细',
     deptLevel: '展开层级', expandAll: '全部展开', collapseAll: '全部折叠',
-    deptFormTemplate: '表单模板', allFormTemplates: '全部',
+    deptFormTemplate: '表单模板', allFormTemplates: '全部', msFtSelected: '已选 ${n} 项',
     allSteps: '全部', reset: '重置',
     chartCompletion: '完成率分布', chartStatus: '进度状态占比',
     deptTable: '部门进度明细',
@@ -586,7 +603,7 @@ const I18N = {
     logout: 'Logout',
     tabDept: 'Dept Progress', tabHrbp: 'HRBP Progress', tabDetail: 'People Detail',
     deptLevel: 'Expand Level', expandAll: 'Expand All', collapseAll: 'Collapse All',
-    deptFormTemplate: 'Form Template', allFormTemplates: 'All',
+    deptFormTemplate: 'Form Template', allFormTemplates: 'All', msFtSelected: '${n} selected',
     allSteps: 'All', reset: 'Reset',
     chartCompletion: 'Completion Rate', chartStatus: 'Status Distribution',
     deptTable: 'Dept Progress Detail',
@@ -936,15 +953,14 @@ function updateLabels() {
   document.getElementById('tabDetail').textContent = t('tabDetail');
   document.getElementById('lblDeptLevel').textContent = t('deptLevel');
   document.getElementById('lblDeptFormTemplate').textContent = t('deptFormTemplate');
-  document.getElementById('optAllFormTemplates').textContent = t('allFormTemplates');
+  updateMsFtBtnLabel('dept');
   document.getElementById('deptTableTitle').textContent = t('deptTable');
   document.getElementById('lblHrbpSelect').textContent = t('hrbpSelect');
   document.getElementById('optAllHrbp').textContent = t('allHrbp');
   document.getElementById('lblHrbpDeptLevel').textContent = t('hrbpDeptLevel');
   const lblHrbpFt = document.getElementById('lblHrbpFormTemplate');
   if (lblHrbpFt) lblHrbpFt.textContent = t('hrbpFormTemplate');
-  const optAllHrbpFt = document.getElementById('optAllHrbpFormTemplates');
-  if (optAllHrbpFt) optAllHrbpFt.textContent = t('allHrbpFormTemplates');
+  updateMsFtBtnLabel('hrbp');
   document.getElementById('detailTableTitle').textContent = t('detailTable');
   document.getElementById('btnExport').textContent = t('exportCSV');
   document.getElementById('btnReset').textContent = LANG === 'zh' ? '重置' : 'Reset';
@@ -1350,25 +1366,158 @@ function renderStats() {
   `;
 }
 
+// ===== MULTI-SELECT FORM TEMPLATE FILTER (Dept + HRBP) =====
+// Reusable multi-select dropdown for the Form Template filter in both Dept Progress
+// and HRBP Progress sub-tabs. Each scope ('dept' | 'hrbp') has its own Set of selected
+// templates and its own trigger button + popup instance.
+//
+// State: msFtState = { dept: Set, hrbp: Set }  — empty Set means "全部" (no filter)
+// Filter semantics: if Set is non-empty, keep records whose formTemplateName ∈ Set.
+let msFtState = { dept: new Set(), hrbp: new Set() };
+let msFtOpen = null;  // currently open popup element
+
+function getMsFtTemplates() {
+  // Lazy source: unique non-empty formTemplateName values across DATA, sorted
+  return [...new Set(DATA.map(d => d.formTemplateName).filter(Boolean))].sort();
+}
+
+function msFtScopeConfig(scope) {
+  // Returns { btnId, lblId, renderFn } for the given scope
+  if (scope === 'dept') return { btnId: 'msBtnDeptFormTemplate', lblId: 'msLblDeptFormTemplate', renderFn: renderDeptView };
+  return { btnId: 'msBtnHrbpFormTemplate', lblId: 'msLblHrbpFormTemplate', renderFn: renderHrbpView };
+}
+
+function updateMsFtBtnLabel(scope) {
+  const cfg = msFtScopeConfig(scope);
+  const lbl = document.getElementById(cfg.lblId);
+  if (!lbl) return;
+  const n = msFtState[scope].size;
+  if (n === 0) {
+    lbl.textContent = t('allFormTemplates');
+  } else {
+    lbl.textContent = t('msFtSelected').replace('${n}', n);
+  }
+  const btn = document.getElementById(cfg.btnId);
+  if (btn) btn.classList.toggle('active', n > 0);
+}
+
+function toggleMsFtDd(scope) {
+  if (msFtOpen && msFtOpen.dataset.scope === scope) { closeMsFtDd(); return; }
+  closeMsFtDd();
+  const cfg = msFtScopeConfig(scope);
+  const btn = document.getElementById(cfg.btnId);
+  if (!btn) return;
+  const templates = getMsFtTemplates();
+  const selected = msFtState[scope];
+
+  const dd = document.createElement('div');
+  dd.className = 'ms-ft-dd';
+  dd.dataset.scope = scope;
+
+  // Search box
+  const searchBox = document.createElement('input');
+  searchBox.type = 'text';
+  searchBox.className = 'ms-ft-search';
+  searchBox.placeholder = LANG === 'zh' ? '搜索...' : 'Search...';
+  dd.appendChild(searchBox);
+
+  // Action row: Select All / Clear
+  const actionRow = document.createElement('div');
+  actionRow.className = 'ms-ft-actions';
+  const selAll = document.createElement('a');
+  selAll.className = 'sel-all';
+  selAll.href = 'javascript:void(0)';
+  selAll.textContent = LANG === 'zh' ? '全选' : 'Select All';
+  selAll.onclick = () => {
+    templates.forEach(v => selected.add(v));
+    dd.querySelectorAll('.ms-ft-opt input[type="checkbox"]').forEach(cb => { cb.checked = true; });
+    updateMsFtBtnLabel(scope);
+    cfg.renderFn();
+  };
+  const clrAll = document.createElement('a');
+  clrAll.className = 'clr-all';
+  clrAll.href = 'javascript:void(0)';
+  clrAll.textContent = LANG === 'zh' ? '清空' : 'Clear';
+  clrAll.onclick = () => {
+    selected.clear();
+    dd.querySelectorAll('.ms-ft-opt input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    updateMsFtBtnLabel(scope);
+    cfg.renderFn();
+  };
+  actionRow.appendChild(selAll);
+  actionRow.appendChild(clrAll);
+  dd.appendChild(actionRow);
+
+  // Options
+  const optWrap = document.createElement('div');
+  optWrap.className = 'ms-ft-opts';
+  templates.forEach(v => {
+    const label = document.createElement('label');
+    label.className = 'ms-ft-opt';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = v;
+    cb.checked = selected.has(v);
+    cb.onchange = () => {
+      if (cb.checked) selected.add(v); else selected.delete(v);
+      updateMsFtBtnLabel(scope);
+      cfg.renderFn();
+    };
+    const span = document.createElement('span');
+    span.textContent = v;
+    label.appendChild(cb);
+    label.appendChild(span);
+    optWrap.appendChild(label);
+  });
+  dd.appendChild(optWrap);
+
+  // Search filter
+  searchBox.oninput = () => {
+    const q = searchBox.value.toLowerCase();
+    optWrap.querySelectorAll('.ms-ft-opt').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+
+  // Position below the trigger button
+  document.body.appendChild(dd);
+  const rect = btn.getBoundingClientRect();
+  let left = rect.left;
+  const ddWidth = 260;
+  if (left + ddWidth > window.innerWidth) left = window.innerWidth - ddWidth - 8;
+  dd.style.left = left + 'px';
+  dd.style.top = (rect.bottom + 4) + 'px';
+  dd.style.minWidth = ddWidth + 'px';
+
+  msFtOpen = dd;
+  dd.onclick = (e) => e.stopPropagation();
+}
+
+function closeMsFtDd() {
+  if (msFtOpen) { msFtOpen.remove(); msFtOpen = null; }
+}
+
+// Click-outside handler for multi-select Form Template dropdown
+document.addEventListener('click', e => {
+  if (msFtOpen && !e.target.closest('.ms-ft-btn') && !e.target.closest('.ms-ft-dd')) {
+    closeMsFtDd();
+  }
+});
+
+// Helper: apply Form Template multi-select filter to a data array for the given scope
+function applyMsFtFilter(arr, scope) {
+  const sel = msFtState[scope];
+  if (!sel || sel.size === 0) return arr;  // empty = 全部
+  return arr.filter(d => sel.has(d.formTemplateName));
+}
+
 // ===== DEPT VIEW =====
 
 function renderDeptView() {
   const maxLevel = parseInt(document.getElementById('selDeptLevel').value);
 
-  // Populate Form Template Name dropdown (if not yet populated)
-  const ftSel = document.getElementById('selDeptFormTemplate');
-  if (ftSel && ftSel.options.length <= 1) {
-    const templates = [...new Set(DATA.map(d => d.formTemplateName).filter(Boolean))].sort();
-    templates.forEach(tpl => {
-      const opt = document.createElement('option');
-      opt.value = tpl;
-      opt.textContent = tpl;
-      ftSel.appendChild(opt);
-    });
-  }
-  // Apply Form Template Name filter
-  const selectedFormTemplate = ftSel ? ftSel.value : '';
-  const deptData = selectedFormTemplate ? DATA.filter(d => d.formTemplateName === selectedFormTemplate) : DATA;
+  // Apply Form Template multi-select filter (Rule 6 multi-select). Empty Set = 全部.
+  const deptData = applyMsFtFilter(DATA, 'dept');
 
   const steps = STEPS;
 
@@ -1549,8 +1698,6 @@ function closePeopleModal() {
 function renderHrbpView() {
   const selectedHrbp = document.getElementById('selHrbp').value;
   const deptLevel = parseInt(document.getElementById('selHrbpDeptLevel').value);
-  const ftSel = document.getElementById('selHrbpFormTemplate');
-  const selectedFormTemplate = ftSel ? ftSel.value : '';
 
   // Populate HRBP dropdown (lazy, once)
   const hrbpSel = document.getElementById('selHrbp');
@@ -1565,20 +1712,9 @@ function renderHrbpView() {
     });
   }
 
-  // Populate Form Template dropdown (lazy, once) — source: DATA.formTemplateName
-  if (ftSel && ftSel.options.length <= 1) {
-    const templates = [...new Set(DATA.map(d => d.formTemplateName).filter(Boolean))].sort();
-    templates.forEach(tpl => {
-      const opt = document.createElement('option');
-      opt.value = tpl;
-      opt.textContent = tpl;
-      ftSel.appendChild(opt);
-    });
-  }
-
-  // CRITICAL: filter DATA by Form Template BEFORE HRBP filter and grouping
-  let filtered = DATA;
-  if (selectedFormTemplate) filtered = filtered.filter(d => d.formTemplateName === selectedFormTemplate);
+  // CRITICAL: filter DATA by Form Template multi-select BEFORE HRBP filter and grouping.
+  // Empty Set = 全部 (no filter). See Rule 6 (multi-select) and the applyMsFtFilter helper.
+  let filtered = applyMsFtFilter(DATA, 'hrbp');
   if (selectedHrbp) filtered = filtered.filter(d => d.hrbpLocalName === selectedHrbp);
 
   // Group by HRBP
