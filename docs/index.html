@@ -316,6 +316,12 @@ tbody tr:last-child td { border-bottom:none; }
           <option value="5">5</option><option value="6">6</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label id="lblHrbpFormTemplate">表单模板</label>
+        <select id="selHrbpFormTemplate" onchange="renderHrbpView()">
+          <option value="" id="optAllHrbpFormTemplates">全部</option>
+        </select>
+      </div>
     </div>
     <div class="hrbp-grid" id="hrbpGrid"></div>
   </div>
@@ -528,6 +534,7 @@ const I18N = {
     deptName: '部门名称', totalCount: '总人数', completed: '已完成',
     inProgress: '进行中', notStarted: '未开始', completionRate: '完成率',
     hrbpSelect: '选择HRBP', allHrbp: '全部HRBP', hrbpDeptLevel: '部门层级',
+    hrbpFormTemplate: '表单模板', allHrbpFormTemplates: '全部',
     hrbpChartBar: 'HRBP完成率对比', hrbpChartPie: 'HRBP人员分布',
     hrbpTotal: '总人数', hrbpCompleted: '已完成', hrbpRate: '完成率',
     hrbpDepts: '负责部门',
@@ -586,6 +593,7 @@ const I18N = {
     deptName: 'Department', totalCount: 'Total', completed: 'Completed',
     inProgress: 'In Progress', notStarted: 'Not Started', completionRate: 'Completion %',
     hrbpSelect: 'Select HRBP', allHrbp: 'All HRBP', hrbpDeptLevel: 'Dept Level',
+    hrbpFormTemplate: 'Form Template', allHrbpFormTemplates: 'All',
     hrbpChartBar: 'HRBP Completion Rate', hrbpChartPie: 'HRBP People Distribution',
     hrbpTotal: 'Total', hrbpCompleted: 'Completed', hrbpRate: 'Rate',
     hrbpDepts: 'Departments',
@@ -933,6 +941,10 @@ function updateLabels() {
   document.getElementById('lblHrbpSelect').textContent = t('hrbpSelect');
   document.getElementById('optAllHrbp').textContent = t('allHrbp');
   document.getElementById('lblHrbpDeptLevel').textContent = t('hrbpDeptLevel');
+  const lblHrbpFt = document.getElementById('lblHrbpFormTemplate');
+  if (lblHrbpFt) lblHrbpFt.textContent = t('hrbpFormTemplate');
+  const optAllHrbpFt = document.getElementById('optAllHrbpFormTemplates');
+  if (optAllHrbpFt) optAllHrbpFt.textContent = t('allHrbpFormTemplates');
   document.getElementById('detailTableTitle').textContent = t('detailTable');
   document.getElementById('btnExport').textContent = t('exportCSV');
   document.getElementById('btnReset').textContent = LANG === 'zh' ? '重置' : 'Reset';
@@ -1537,8 +1549,10 @@ function closePeopleModal() {
 function renderHrbpView() {
   const selectedHrbp = document.getElementById('selHrbp').value;
   const deptLevel = parseInt(document.getElementById('selHrbpDeptLevel').value);
+  const ftSel = document.getElementById('selHrbpFormTemplate');
+  const selectedFormTemplate = ftSel ? ftSel.value : '';
 
-  // Populate HRBP dropdown
+  // Populate HRBP dropdown (lazy, once)
   const hrbpSel = document.getElementById('selHrbp');
   if (hrbpSel.options.length <= 1) {
     const hrbps = [...new Set(DATA.map(d => d.hrbpLocalName + '|' + d.hrbpPreferredName).filter(Boolean))].sort();
@@ -1551,7 +1565,20 @@ function renderHrbpView() {
     });
   }
 
+  // Populate Form Template dropdown (lazy, once) — source: DATA.formTemplateName
+  if (ftSel && ftSel.options.length <= 1) {
+    const templates = [...new Set(DATA.map(d => d.formTemplateName).filter(Boolean))].sort();
+    templates.forEach(tpl => {
+      const opt = document.createElement('option');
+      opt.value = tpl;
+      opt.textContent = tpl;
+      ftSel.appendChild(opt);
+    });
+  }
+
+  // CRITICAL: filter DATA by Form Template BEFORE HRBP filter and grouping
   let filtered = DATA;
+  if (selectedFormTemplate) filtered = filtered.filter(d => d.formTemplateName === selectedFormTemplate);
   if (selectedHrbp) filtered = filtered.filter(d => d.hrbpLocalName === selectedHrbp);
 
   // Group by HRBP
@@ -1565,12 +1592,21 @@ function renderHrbpView() {
   // 流程顺序
   const steps = STEPS;
 
+  // Rule 8 (HRBP variant): compute grand totals across filtered set to determine
+  // which step badges to display. Cards only show steps that have people in the
+  // current filtered view — keeps the badge row compact when a Form Template filter
+  // excludes certain steps (e.g. annual-only hides mid-year review steps).
+  const totalStepCounts = {};
+  steps.forEach(s => totalStepCounts[s] = 0);
+  filtered.forEach(p => { if (totalStepCounts[p.currentStep] !== undefined) totalStepCounts[p.currentStep]++; });
+  const visibleSteps = steps.filter(s => totalStepCounts[s] > 0);
+
   // HRBP cards
   const hrbpData = Object.entries(hrbpGroups).map(([name, people]) => {
     const total = people.length;
     const completed = people.filter(p => p.currentStep === 'Completed').length;
     const engName = people[0]?.hrbpPreferredName || '';
-    // Step counts in flow order
+    // Step counts in flow order — initialize ALL 9 steps (not visibleSteps)
     const stepCounts = {};
     steps.forEach(s => stepCounts[s] = 0);
     people.forEach(p => { if (stepCounts[p.currentStep] !== undefined) stepCounts[p.currentStep]++; });
@@ -1585,7 +1621,7 @@ function renderHrbpView() {
     return { name, engName, total, completed, rate: total ? completed / total : 0, stepCounts, deptGroups };
   }).sort((a, b) => b.rate - a.rate);
 
-  // Render cards
+  // Render cards — badge row uses visibleSteps, preserving original step number via STEPS.indexOf(s)
   const stepNums = STEP_NUMS;
   document.getElementById('hrbpGrid').innerHTML = hrbpData.map(h => `
     <div class="hrbp-card">
@@ -1598,7 +1634,7 @@ function renderHrbpView() {
       </div>
       <div class="progress-bar" style="margin-bottom:12px"><div class="progress-fill" style="width:${(h.rate*100).toFixed(0)}%;background:${progressColor(h.rate)}"></div></div>
       <div class="hrbp-step-row" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;font-size:11px">
-        ${steps.map((s, i) => `<span class="badge ${stepBadgeClass(s)}" style="font-size:10px">${stepNums[i]}${stepLabel(s)}:${h.stepCounts[s]}</span>`).join('')}
+        ${visibleSteps.map(s => `<span class="badge ${stepBadgeClass(s)}" style="font-size:10px">${stepNums[STEPS.indexOf(s)]}${stepLabel(s)}:${h.stepCounts[s]}</span>`).join('')}
       </div>
       <div class="hrbp-dept-list">
         <div style="font-weight:600;margin-bottom:4px">${t('hrbpDepts')} (L${deptLevel})</div>
