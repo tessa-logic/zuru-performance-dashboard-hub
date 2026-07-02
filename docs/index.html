@@ -1344,13 +1344,42 @@ function initApp() {
 }
 
 // ===== STATS =====
+// computeStatsData() returns the dataset the 5 core stat cards should reflect.
+// It mirrors the active sub-tab's filter chain so the top stats stay in sync with
+// every filter control inside 部门进度 / HRBP 进度. On 人员明细 (or any other tab),
+// it returns the full DATA so the stats show the global total.
+//
+// Filter linkage:
+//   dept  tab → applyMsFtFilter(DATA, 'dept')               [表单模板多选]
+//   hrbp  tab → applyMsFtFilter(DATA, 'hrbp') + selHrbp      [表单模板多选 + HRBP选择器]
+//   detail tab → DATA (full, no filter applied to stats)
+//
+// NOTE: selDeptLevel / selHrbpDeptLevel control tree DEPTH only — they do not
+// change which records are counted, so they are intentionally NOT part of the
+// stats filter chain (the stats always reflect the full filtered set, not a
+// single expanded branch).
+function computeStatsData() {
+  if (currentTab === 'dept') {
+    return applyMsFtFilter(DATA, 'dept');
+  }
+  if (currentTab === 'hrbp') {
+    let f = applyMsFtFilter(DATA, 'hrbp');
+    const sel = document.getElementById('selHrbp');
+    const selectedHrbp = sel ? sel.value : '';
+    if (selectedHrbp) f = f.filter(d => d.hrbpLocalName === selectedHrbp);
+    return f;
+  }
+  return DATA;
+}
+
 function renderStats() {
-  const total = DATA.length;
-  const completed = DATA.filter(d => d.currentStep === 'Completed').length;
+  const data = computeStatsData();
+  const total = data.length;
+  const completed = data.filter(d => d.currentStep === 'Completed').length;
   // Not Started = 目标设定中 + 经理上传 + 员工自评 (Rule 2)
   // Team Member Self-Assessment is an initial stage — employee fills self-review before
   // the formal review cycle begins, so it counts as "not yet started the formal workflow".
-  const notStarted = DATA.filter(d => d.currentStep === 'Annual Objective Setting'
+  const notStarted = data.filter(d => d.currentStep === 'Annual Objective Setting'
     || d.currentStep === 'Leader Upload'
     || d.currentStep === 'Team Member Self-Assessment').length;
   // In Progress = 发送表单份数 - 未开始 - 已完成 (computed by subtraction).
@@ -1521,6 +1550,10 @@ function renderDeptView() {
 
   // Apply Form Template multi-select filter (Rule 6 multi-select). Empty Set = 全部.
   const deptData = applyMsFtFilter(DATA, 'dept');
+
+  // Refresh the top stat cards so they reflect the active sub-tab's filters.
+  // computeStatsData() mirrors this same filter chain for the 'dept' scope.
+  renderStats();
 
   const steps = STEPS;
 
@@ -1719,6 +1752,10 @@ function renderHrbpView() {
   // Empty Set = 全部 (no filter). See Rule 6 (multi-select) and the applyMsFtFilter helper.
   let filtered = applyMsFtFilter(DATA, 'hrbp');
   if (selectedHrbp) filtered = filtered.filter(d => d.hrbpLocalName === selectedHrbp);
+
+  // Refresh the top stat cards so they reflect the active sub-tab's filters.
+  // computeStatsData() mirrors this same filter chain (Form Template + HRBP) for the 'hrbp' scope.
+  renderStats();
 
   // Group by HRBP
   const hrbpGroups = {};
