@@ -1360,6 +1360,18 @@ function renderDeptView() {
 
   const steps = STEPS;
 
+  // Compute grand totals first to determine which step columns to display.
+  // Rule: if a step's grand total across all deptData is 0, hide that entire column
+  // (header + every row + summary row). This keeps the table compact when a Form Template
+  // filter excludes certain steps (e.g. annual-only data hides mid-year review steps).
+  const totalAll = deptData.length;
+  const totalStepCounts = {};
+  steps.forEach(s => totalStepCounts[s] = 0);
+  deptData.forEach(p => { if (totalStepCounts[p.currentStep] !== undefined) totalStepCounts[p.currentStep]++; });
+  const visibleSteps = steps.filter(s => totalStepCounts[s] > 0);
+  const totalCompleted = totalStepCounts['Completed'];
+  const totalRate = totalAll ? totalCompleted / totalAll : 0;
+
   // Build hierarchical tree data
   function buildTree(items, level, path) {
     if (level > maxLevel) return null;
@@ -1391,7 +1403,7 @@ function renderDeptView() {
   const stepNums = STEP_NUMS;
   document.getElementById('deptThead').innerHTML = `<tr>
     <th>${t('deptName')}</th><th>${t('totalCount')}</th>
-    ${steps.map((s, i) => `<th>${stepNums[i]} ${stepLabel(s)}</th>`).join('')}
+    ${visibleSteps.map(s => `<th>${stepNums[STEPS.indexOf(s)]} ${stepLabel(s)}</th>`).join('')}
     <th>${t('completionRate')}</th>
   </tr>`;
 
@@ -1410,14 +1422,6 @@ function renderDeptView() {
   window._deptRows = rows;
 
   const expandLevel = maxLevel;
-
-  // Compute totals for summary row
-  const totalAll = deptData.length;
-  const totalStepCounts = {};
-  steps.forEach(s => totalStepCounts[s] = 0);
-  deptData.forEach(p => { if (totalStepCounts[p.currentStep] !== undefined) totalStepCounts[p.currentStep]++; });
-  const totalCompleted = totalStepCounts['Completed'];
-  const totalRate = totalAll ? totalCompleted / totalAll : 0;
   const summaryLabel = LANG === 'zh' ? '合计' : 'Total';
 
   document.getElementById('deptTbody').innerHTML = rows.map((r, idx) => {
@@ -1429,7 +1433,7 @@ function renderDeptView() {
     return `<tr class="dept-row dept-depth-${r.depth}" data-idx="${idx}" data-depth="${r.depth}" style="${visible ? '' : 'display:none'}">
       <td style="padding-left:${indent + 12}px">${arrow}<strong>${r.name}</strong></td>
       <td class="clickable-num" onclick="showDeptPeople(${idx},'total')">${r.total}</td>
-      ${steps.map(s => `<td class="clickable-num" onclick="showDeptPeople(${idx},'${s}')"${s==='Completed'?' style="color:#1C1B1C;font-weight:600"':''}>${r.stepCounts[s]}</td>`).join('')}
+      ${visibleSteps.map(s => `<td class="clickable-num" onclick="showDeptPeople(${idx},'${s}')"${s==='Completed'?' style="color:#1C1B1C;font-weight:600"':''}>${r.stepCounts[s]}</td>`).join('')}
       <td>
         <div style="display:flex;align-items:center;gap:8px">
           <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${(r.rate*100).toFixed(0)}%;background:${progressColor(r.rate)}"></div></div>
@@ -1440,7 +1444,7 @@ function renderDeptView() {
   }).join('') + `<tr class="dept-summary-row" style="background:var(--accent);color:#fff;font-weight:700;border-top:2px solid var(--primary);">
       <td style="padding:10px 12px">${summaryLabel}</td>
       <td class="clickable-num" style="padding:10px 12px;color:#fff">${totalAll}</td>
-      ${steps.map(s => `<td class="clickable-num" style="padding:10px 12px;color:#fff">${totalStepCounts[s]}</td>`).join('')}
+      ${visibleSteps.map(s => `<td class="clickable-num" style="padding:10px 12px;color:#fff">${totalStepCounts[s]}</td>`).join('')}
       <td style="padding:10px 12px">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="progress-bar" style="width:80px;background:rgba(255,255,255,0.2)"><div class="progress-fill" style="width:${(totalRate*100).toFixed(0)}%;background:#fff"></div></div>
