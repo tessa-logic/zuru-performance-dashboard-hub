@@ -716,16 +716,18 @@ function progressColor(rate) {
 }
 
 // ===== AUTH =====
+// Rule 10 (Access Control & Page Visibility):
+//   ZURU2026 (adminCodes)        → role: admin,  pageAccess: 'all'             → all main tabs visible
+//   HRBP2026 (groupCodes)        → role: viewer, pageAccess: 'objSetting-only' → only 目标设定进度
+//   personal user codes (users)  → role: viewer, pageAccess: 'objSetting-only' → only 目标设定进度
+// version bumped to 2 so old localStorage entries (with deleted users / old adminCodes) are discarded.
 const USER_REGISTRY = {
   users: [
     { id:'u001', name:'Tessa Liu', role:'admin', code:'zuru-tessali-x7k2', dept:'HR Global' },
-    { id:'u002', name:'张佳',      role:'admin', code:'zuru-zhangj-m4p9', dept:'HR Global' },
-    { id:'u003', name:'胡群英',    role:'viewer', code:'zuru-huqy-f3a8', dept:'HR Global' },
-    { id:'u004', name:'罗林浩',    role:'viewer', code:'zuru-luolh-j6d1', dept:'HR Global' },
-    { id:'u005', name:'林顺銮',    role:'viewer', code:'zuru-linsl-b5e7', dept:'HR Global' },
   ],
-  adminCodes: ['zuru2026', 'ZURU2026', 'hrbp2026', 'HRBP2026', 'admin2026'],
-  version: 1
+  adminCodes: ['ZURU2026'],
+  groupCodes: ['HRBP2026'],
+  version: 2
 };
 
 let loginFailCount = 0;
@@ -738,12 +740,17 @@ function loadUserRegistry() {
       if (parsed.version >= USER_REGISTRY.version) {
         USER_REGISTRY.users = parsed.users;
         USER_REGISTRY.adminCodes = parsed.adminCodes || USER_REGISTRY.adminCodes;
+        USER_REGISTRY.groupCodes = parsed.groupCodes || USER_REGISTRY.groupCodes;
+      } else {
+        // Stored version is older — discard and use the new defaults (version bumped).
+        localStorage.removeItem('zuru_user_registry');
       }
     } catch(e) { /* use defaults */ }
   }
 }
 
 function persistUserRegistry() {
+  USER_REGISTRY.version = (USER_REGISTRY.version || 2) + 1;
   localStorage.setItem('zuru_user_registry', JSON.stringify(USER_REGISTRY));
 }
 
@@ -757,9 +764,28 @@ function showDashboard(user) {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('mainHeader').style.display = 'flex';
   document.getElementById('mainContent').style.display = 'block';
-  // Show admin tab only for admin role
-  const adminTab = document.getElementById('dashAdmin');
-  if (adminTab) adminTab.style.display = (user.role === 'admin') ? 'inline-block' : 'none';
+
+  // Rule 10: page visibility control based on pageAccess.
+  //   'all'             → show all main tabs (admin tab also requires role === 'admin')
+  //   'objSetting-only' → hide resend / objective / admin; force objSetting tab
+  const pageAccess = user.pageAccess || 'all';
+
+  const dashResend = document.getElementById('dashResend');
+  const dashObjective = document.getElementById('dashObjective');
+  const dashAdmin = document.getElementById('dashAdmin');
+  if (pageAccess === 'objSetting-only') {
+    if (dashResend) dashResend.style.display = 'none';
+    if (dashObjective) dashObjective.style.display = 'none';
+    if (dashAdmin) dashAdmin.style.display = 'none';
+    // Force objSetting tab — user cannot navigate elsewhere
+    switchDash('objSetting');
+  } else {
+    // 'all' — show resend + objective tabs; admin tab only for admin role
+    if (dashResend) dashResend.style.display = 'inline-block';
+    if (dashObjective) dashObjective.style.display = 'inline-block';
+    if (dashAdmin) dashAdmin.style.display = (user.role === 'admin') ? 'inline-block' : 'none';
+  }
+
   // Update current user display
   const userDisplay = document.getElementById('currentUser');
   if (userDisplay) userDisplay.textContent = user.name + ' (' + (user.role === 'admin' ? (LANG==='zh'?'管理员':'Admin') : (LANG==='zh'?'查看者':'Viewer')) + ')';
@@ -768,21 +794,31 @@ function showDashboard(user) {
 
 function doLogin() {
   const inputCode = document.getElementById('loginPwd').value.trim();
-  // Check against user registry
+  // Rule 10: three login tiers → role + pageAccess
+  //   1. personal user code → role from record, pageAccess 'objSetting-only'
+  //   2. ZURU2026 (adminCodes) → role admin, pageAccess 'all'
+  //   3. HRBP2026 (groupCodes) → role viewer, pageAccess 'objSetting-only'
   const matchedUser = USER_REGISTRY.users.find(u => u.code === inputCode);
   if (matchedUser) {
-    sessionStorage.setItem('dashboard_session', JSON.stringify({
-      userId: matchedUser.id, name: matchedUser.name, role: matchedUser.role, loginTime: Date.now()
-    }));
+    const sessionUser = {
+      userId: matchedUser.id, name: matchedUser.name, role: matchedUser.role,
+      pageAccess: 'objSetting-only', loginTime: Date.now()
+    };
+    sessionStorage.setItem('dashboard_session', JSON.stringify(sessionUser));
     loginFailCount = 0;
-    showDashboard(matchedUser);
+    showDashboard(sessionUser);
   } else if (USER_REGISTRY.adminCodes.includes(inputCode)) {
-    // Legacy admin code
-    sessionStorage.setItem('dashboard_session', JSON.stringify({
-      userId: 'legacy_admin', name: 'Admin', role: 'admin', loginTime: Date.now()
-    }));
+    // Universal admin code — highest permission, all pages
+    const sessionUser = { userId: 'admin', name: 'Admin', role: 'admin', pageAccess: 'all', loginTime: Date.now() };
+    sessionStorage.setItem('dashboard_session', JSON.stringify(sessionUser));
     loginFailCount = 0;
-    showDashboard({ role: 'admin', name: 'Admin' });
+    showDashboard(sessionUser);
+  } else if ((USER_REGISTRY.groupCodes || []).includes(inputCode)) {
+    // Group code — limited to 目标设定进度 only
+    const sessionUser = { userId: 'group', name: 'HRBP Group', role: 'viewer', pageAccess: 'objSetting-only', loginTime: Date.now() };
+    sessionStorage.setItem('dashboard_session', JSON.stringify(sessionUser));
+    loginFailCount = 0;
+    showDashboard(sessionUser);
   } else {
     // Invalid code
     loginFailCount++;
@@ -822,7 +858,10 @@ function checkAuth() {
 // ===== ADMIN =====
 function renderAdminPanel() {
   const user = getCurrentUser();
-  if (!user || user.role !== 'admin') return;
+  // Rule 10: admin panel requires BOTH role === 'admin' AND pageAccess === 'all'.
+  // (Universal admin code ZURU2026 has pageAccess 'all'; personal codes have 'objSetting-only'
+  // even if their user record says role 'admin', so they cannot reach this panel.)
+  if (!user || user.role !== 'admin' || user.pageAccess !== 'all') return;
   document.getElementById('adminCurrentUser').textContent = t('currentUserLabel') + user.name;
   document.getElementById('adminUserRole').textContent = t('roleLabel') + (user.role === 'admin' ? t('roleAdmin') : t('roleViewer'));
   renderUserTable();
@@ -1232,7 +1271,16 @@ function closeResendModal() {
 // ===== DASHBOARD SWITCHING =====
 let currentDash = 'objSetting';
 
+// Rule 10: switchDash enforces page visibility. If the current user's pageAccess is
+// 'objSetting-only', navigation to resend/objective/admin is blocked (the tabs are
+// also hidden via display:none in showDashboard, but this is a defense-in-depth guard
+// against direct onclick calls or bookmarked URLs).
 function switchDash(dash) {
+  const session = getCurrentUser();
+  const pageAccess = (session && session.pageAccess) || 'all';
+  if (pageAccess === 'objSetting-only' && dash !== 'objSetting') {
+    dash = 'objSetting';  // force back to the only allowed tab
+  }
   currentDash = dash;
   document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('dash' + dash.charAt(0).toUpperCase() + dash.slice(1)).classList.add('active');
